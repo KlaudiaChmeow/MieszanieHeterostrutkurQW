@@ -23,4 +23,3 @@ Wytyczne:
 * Naprężenia
 * krytyczna grubość
 * Masy efektywne
-
