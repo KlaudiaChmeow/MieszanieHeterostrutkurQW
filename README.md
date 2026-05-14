@@ -22,4 +22,4 @@ Wytyczne:
 * Robienie studni kwantowej (zwykle podłoże)
 * Naprężenia
 * krytyczna grubość
-* Masy efektywne
+* Masy efektywne (Opcjonalne)
