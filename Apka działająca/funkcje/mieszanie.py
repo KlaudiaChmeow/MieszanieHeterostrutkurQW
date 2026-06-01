@@ -397,6 +397,14 @@ def calculate(material, database):
             database
         )
         
+        deltaSO = mix_parameter(
+            "deltaSO",
+            cations,
+            anions,
+            fractions,
+            database
+        )
+        
         CBO = VBO + Eg
         
         
@@ -409,7 +417,8 @@ def calculate(material, database):
             "av": av,
             "b": b,
             "c11": c11,
-            "c12": c12
+            "c12": c12,
+            "deltaSO": deltaSO
         }
 
        

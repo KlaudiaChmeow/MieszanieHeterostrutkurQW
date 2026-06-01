@@ -6,6 +6,8 @@ import importlib.util
 import tkinter as tk
 from tkinter import ttk
 import app_state
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 
 # ==========================================
@@ -988,6 +990,7 @@ def show_operations_screen():
     tk.Button(
         left_frame,
         text="Studnia kwantowa",
+        command=show_qw_form,
         width=25,
         height=2
     ).pack(pady=5)
@@ -1000,6 +1003,121 @@ def show_operations_screen():
         height=2
     ).pack(pady=20)
     
+ # ==========================================
+ # STUDNIA KWANTOWA
+ # ==========================================   
+ 
+def draw_quantum_well():
+
+    app_state.well_width = float(
+        well_width_var.get()
+    )
+
+    app_state.barrier_width = float(
+        barrier_width_var.get()
+    )
+
+    module = import_function("studnia")
+
+    x, y_cb, y_hh, y_lh = module.plot(database)
+
+    clear_right_frame()
+
+    fig = Figure(figsize=(7, 5), dpi=100)
+
+    ax = fig.add_subplot(111)
+
+    ax.plot(
+        x,
+        y_cb,
+        linewidth=3,
+        label="Pasmo przewodnictwa"
+    )
+
+    ax.plot(
+        x,
+        y_hh,
+        "--",
+        linewidth=3,
+        label="Pasmo HH"
+    )
+
+    ax.plot(
+        x,
+        y_lh,
+        linewidth=3,
+        label="Pasmo LH"
+    )
+
+    ax.set_xlabel("Pozycja [nm]")
+    ax.set_ylabel("Energia [eV]")
+
+    ax.grid(True)
+    ax.legend()
+
+    canvas = FigureCanvasTkAgg(
+        fig,
+        master=right_frame
+    )
+
+    canvas.draw()
+
+    canvas.get_tk_widget().pack(
+        fill="both",
+        expand=True
+    )
+
+    app_state.plot_canvas = canvas
+    
+    
+def show_qw_form():
+
+    clear_left_frame()
+
+    tk.Label(
+        left_frame,
+        text="STUDNIA KWANTOWA",
+        bg="#cdd8f5",
+        font=("Arial", 16, "bold")
+    ).pack(pady=20)
+
+    tk.Label(
+        left_frame,
+        text="Szerokość studni [nm]",
+        bg="#cdd8f5"
+    ).pack()
+
+    tk.Entry(
+        left_frame,
+        textvariable=well_width_var
+    ).pack(pady=5)
+
+    tk.Label(
+        left_frame,
+        text="Szerokość bariery [nm]",
+        bg="#cdd8f5"
+    ).pack()
+
+    tk.Entry(
+        left_frame,
+        textvariable=barrier_width_var
+    ).pack(pady=5)
+
+    tk.Button(
+        left_frame,
+        text="Rysuj",
+        command=draw_quantum_well
+    ).pack(pady=20)
+    
+    
+# ==========================================
+# CZYSZCZENIE OKNA
+# ==========================================
+def clear_right_frame():
+
+    for widget in right_frame.winfo_children():
+        widget.destroy()
+        
 # ==========================================
 # DANE
 # ==========================================
@@ -1096,6 +1214,9 @@ right_frame.grid(
 preset_var = tk.StringVar()
 
 substrate_var = tk.StringVar()
+
+well_width_var = tk.StringVar(value="4")
+barrier_width_var = tk.StringVar(value="8")
 
 cation1_var = tk.StringVar()
 cation2_var = tk.StringVar()
