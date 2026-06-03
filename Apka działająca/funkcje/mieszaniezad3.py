@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # ==========================================
-# FUNKCJA DO APLIKACJI
-# plik: funkcje/naprezenia.py
+#STANDARD DO TEGO JAK POBIERA Z BAZY DANYCH INFO
 # ==========================================
 
 
