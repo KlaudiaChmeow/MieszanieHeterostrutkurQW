@@ -5,6 +5,9 @@ import json
 import importlib.util
 import tkinter as tk
 from tkinter import ttk
+import app_state
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 
 # ==========================================
@@ -19,49 +22,172 @@ FUNKCJE_PATH = "./funkcje"
 # ==========================================
 PRESETS = {
 
+    # ======================================
+    # TRÓJNARKI
+    # ======================================
+
     "InGaAs": {
 
         "cat1": "In",
         "cat2": "Ga",
+        "cat3": "",
 
         "an1": "As",
         "an2": "",
+        "an3": "",
 
         "x1": "0.2",
         "x2": "0.8",
+        "x3": "0.0",
 
         "y1": "1.0",
-        "y2": "0.0"
+        "y2": "0.0",
+        "y3": "0.0"
     },
 
-    "AlGaAs": {
+    "GaAsP": {
 
-        "cat1": "Al",
-        "cat2": "Ga",
-
-        "an1": "As",
-        "an2": "",
-
-        "x1": "0.3",
-        "x2": "0.7",
-
-        "y1": "1.0",
-        "y2": "0.0"
-    },
-
-    "InAsP": {
-
-        "cat1": "In",
+        "cat1": "Ga",
         "cat2": "",
+        "cat3": "",
 
         "an1": "As",
         "an2": "P",
+        "an3": "",
 
         "x1": "1.0",
         "x2": "0.0",
+        "x3": "0.0",
+
+        "y1": "0.8",
+        "y2": "0.2",
+        "y3": "0.0"
+    },
+
+    # ======================================
+    # CZWÓRKI 2+2
+    # ======================================
+
+    "InGaAsP": {
+
+        "cat1": "In",
+        "cat2": "Ga",
+        "cat3": "",
+
+        "an1": "As",
+        "an2": "P",
+        "an3": "",
+
+        "x1": "0.53",
+        "x2": "0.47",
+        "x3": "0.0",
+
+        "y1": "0.75",
+        "y2": "0.25",
+        "y3": "0.0"
+    },
+
+    "InGaAsSb": {
+
+        "cat1": "In",
+        "cat2": "Ga",
+        "cat3": "",
+
+        "an1": "As",
+        "an2": "Sb",
+        "an3": "",
+
+        "x1": "0.3",
+        "x2": "0.7",
+        "x3": "0.0",
+
+        "y1": "0.5",
+        "y2": "0.5",
+        "y3": "0.0"
+    },
+
+    # ======================================
+    # CZWÓRKI 3+1
+    # ======================================
+
+    "AlGaInAs": {
+
+        "cat1": "Al",
+        "cat2": "Ga",
+        "cat3": "In",
+
+        "an1": "As",
+        "an2": "",
+        "an3": "",
+
+        "x1": "0.2",
+        "x2": "0.3",
+        "x3": "0.5",
+
+        "y1": "1.0",
+        "y2": "0.0",
+        "y3": "0.0"
+    },
+
+    "AlGaInP": {
+
+        "cat1": "Al",
+        "cat2": "Ga",
+        "cat3": "In",
+
+        "an1": "P",
+        "an2": "",
+        "an3": "",
+
+        "x1": "0.2",
+        "x2": "0.3",
+        "x3": "0.5",
+
+        "y1": "1.0",
+        "y2": "0.0",
+        "y3": "0.0"
+    },
+
+    # ======================================
+    # CZWÓRKI 1+3
+    # ======================================
+
+    "GaAsPSb": {
+
+        "cat1": "Ga",
+        "cat2": "",
+        "cat3": "",
+
+        "an1": "As",
+        "an2": "P",
+        "an3": "Sb",
+
+        "x1": "1.0",
+        "x2": "0.0",
+        "x3": "0.0",
 
         "y1": "0.4",
-        "y2": "0.6"
+        "y2": "0.3",
+        "y3": "0.3"
+    },
+
+    "InAsPSb": {
+
+        "cat1": "In",
+        "cat2": "",
+        "cat3": "",
+
+        "an1": "As",
+        "an2": "P",
+        "an3": "Sb",
+
+        "x1": "1.0",
+        "x2": "0.0",
+        "x3": "0.0",
+
+        "y1": "0.4",
+        "y2": "0.2",
+        "y3": "0.4"
     }
 }
 
@@ -79,34 +205,251 @@ def load_database():
 database = load_database()
 
 
-# ==========================================
-# ŁADOWANIE PIERWIASTKÓW
-# ==========================================
-def load_elements():
-
-    return list(database["elements"].keys())
 
 
 # ==========================================
-# ŁADOWANIE FUNKCJI
+# ŁADOWANIE KATIONÓW
 # ==========================================
-def load_functions():
+def load_cations():
 
-    funcs = []
+    result = []
+
+    for el, data in database["elements"].items():
+
+        if data.get("type") == "cation":
+
+            result.append(el)
+
+    return result
+
+
+# ==========================================
+# ŁADOWANIE ANIONÓW
+# ==========================================
+def load_anions():
+
+    result = []
+
+    for el, data in database["elements"].items():
+
+        if data.get("type") == "anion":
+
+            result.append(el)
+
+    return result
+
+
+
+# ==========================================
+# TWORZENIE MATERIAŁU
+# ==========================================
+def create_material_dict():
+
+    material = {
+
+        "cations": [],
+        "anions": [],
+        "fractions": {}
+    }
+
+    # ==========================
+    # KATIONY
+    # ==========================
+
+    cation_data = [
+
+        (cation1_var.get(), x1_var.get()),
+        (cation2_var.get(), x2_var.get()),
+        (cation3_var.get(), x3_var.get())
+    ]
+
+    # ==========================
+    # ANIONY
+    # ==========================
+
+    anion_data = [
+
+        (anion1_var.get(), y1_var.get()),
+        (anion2_var.get(), y2_var.get()),
+        (anion3_var.get(), y3_var.get())
+    ]
+
+    # ==========================
+    # KATIONY
+    # ==========================
+
+    for name, frac in cation_data:
+
+        if name == "":
+            continue
+
+        material["cations"].append(name)
+
+        material["fractions"][name] = float(frac)
+
+    # ==========================
+    # ANIONY
+    # ==========================
+
+    for name, frac in anion_data:
+
+        if name == "":
+            continue
+
+        material["anions"].append(name)
+
+        material["fractions"][name] = float(frac)
+
+    return material
+
+
+# ==========================================
+# ŁADOWANIE PRESETU
+# ==========================================
+def load_preset(event=None):
+
+    name = preset_var.get()
+
+    if name not in PRESETS:
+
+        return
+
+    p = PRESETS[name]
+
+    cation1_var.set(p["cat1"])
+    cation2_var.set(p["cat2"])
+    cation3_var.set(p["cat3"])
+    
+    anion1_var.set(p["an1"])
+    anion2_var.set(p["an2"])
+    anion3_var.set(p["an3"])
+    
+    x1_var.set(p["x1"])
+    x2_var.set(p["x2"])
+    x3_var.set(p["x3"])
+    
+    y1_var.set(p["y1"])
+    y2_var.set(p["y2"])
+    y3_var.set(p["y3"])
+
+
+# ==========================================
+# WALIDACJA
+# ==========================================
+def validate_fractions():
 
     try:
 
-        for file in os.listdir(FUNKCJE_PATH):
+        cation_values = [
 
-            if file.endswith(".py"):
+            float(x1_var.get()),
+            float(x2_var.get()),
+            float(x3_var.get())
+        ]
 
-                funcs.append(file[:-3])
+        anion_values = [
 
-    except Exception as e:
+            float(y1_var.get()),
+            float(y2_var.get()),
+            float(y3_var.get())
+        ]
 
-        print("Błąd folderu funkcji:", e)
+    except:
 
-    return funcs
+        return False, "Udziały muszą być liczbami"
+
+    # ==========================
+    # ZAKRES
+    # ==========================
+
+    for value in cation_values + anion_values:
+
+        if value < 0 or value > 1:
+
+            return (
+                False,
+                "Udziały muszą należeć do przedziału <0,1>"
+            )
+
+    # ==========================
+    # SUMA KATIONÓW
+    # ==========================
+
+    active_cat = []
+
+    if cation1_var.get() != "":
+        active_cat.append(float(x1_var.get()))
+
+    if cation2_var.get() != "":
+        active_cat.append(float(x2_var.get()))
+
+    if cation3_var.get() != "":
+        active_cat.append(float(x3_var.get()))
+
+    # ==========================
+    # SUMA ANIONÓW
+    # ==========================
+
+    active_an = []
+
+    if anion1_var.get() != "":
+        active_an.append(float(y1_var.get()))
+
+    if anion2_var.get() != "":
+        active_an.append(float(y2_var.get()))
+
+    if anion3_var.get() != "":
+        active_an.append(float(y3_var.get()))
+
+    eps = 1e-6
+
+    if len(active_cat) > 0:
+
+        if abs(sum(active_cat) - 1.0) > eps:
+
+            return (
+                False,
+                f"Suma udziałów kationów = {sum(active_cat):.4f}\n"
+                f"Musi wynosić 1"
+            )
+
+    if len(active_an) > 0:
+
+        if abs(sum(active_an) - 1.0) > eps:
+
+            return (
+                False,
+                f"Suma udziałów anionów = {sum(active_an):.4f}\n"
+                f"Musi wynosić 1"
+            )
+        
+    # ==========================
+    # MAKS. 4 SKŁADNIKI
+    # ==========================
+
+    active_elements = 0
+
+    for var in [
+        cation1_var,
+        cation2_var,
+        cation3_var,
+        anion1_var,
+        anion2_var,
+        anion3_var
+    ]:
+
+        if var.get() != "":
+            active_elements += 1
+
+    if active_elements > 4:
+
+        return (
+            False,
+            "Maksymalnie można wybrać 4 składniki "
+            "(kationy + aniony)"
+        )
+
+    return True, ""
 
 
 # ==========================================
@@ -130,178 +473,657 @@ def import_function(module_name):
 
     return module
 
-
 # ==========================================
-# NORMALIZACJA
+# POKAZ PARAMETRY MATERIALU
 # ==========================================
-def normalize(x1, x2):
+def show_material_parameters():
 
-    x1 = float(x1)
-    x2 = float(x2)
+    result_box.delete("1.0", tk.END)
 
-    s = x1 + x2
+    result_box.insert(
+        tk.END,
+        "PARAMETRY MATERIAŁU\n\n"
+    )
 
-    if s == 0:
+    result_box.insert(
+        tk.END,
+        f"Kationy: {app_state.current_material['cations']}\n"
+    )
 
-        return 0, 0
-
-    return x1 / s, x2 / s
-
-
+    result_box.insert(
+        tk.END,
+        f"Aniony: {app_state.current_material['anions']}\n"
+    )
+    
+    
 # ==========================================
-# TWORZENIE MATERIAŁU
+# CLEAR LEFT
 # ==========================================
-def create_material_dict():
+def clear_left_frame():
 
-    material = {
+    for widget in left_frame.winfo_children():
+        widget.destroy()
+        
+        
+# ==========================================
+# NEXT
+# ==========================================
+def next_window():
 
-        "cations": [],
-        "anions": [],
-        "fractions": {}
-    }
+    
 
-    # ======================================
-    # POBRANIE
-    # ======================================
-    cat1 = cation1_var.get()
-    cat2 = cation2_var.get()
+    valid, message = validate_fractions()
 
-    an1 = anion1_var.get()
-    an2 = anion2_var.get()
+    if not valid:
 
-    x1 = x1_var.get()
-    x2 = x2_var.get()
+        tk.messagebox.showerror(
+            "Błąd",
+            message
+        )
+    
+        return
 
-    y1 = y1_var.get()
-    y2 = y2_var.get()
+    app_state.current_material = create_material_dict()
 
-    # ======================================
-    # NORMALIZACJA
-    # ======================================
-    x1, x2 = normalize(x1, x2)
+    #show_operations_screen()
+    show_substrate_screen()
+    
+    module = import_function("mieszanie")
+    
+    #app_state.mixed_material  = module.calculate(
+    result  = module.calculate(
+        app_state.current_material,
+        database
+    )
+    
+    result_box.delete("1.0", tk.END)
 
-    y1, y2 = normalize(y1, y2)
+    result_box.insert(
+        tk.END,
+        result,
+        "center"
+    )
+    
+    
+# ==========================================
+# PIERWSZE OKNO
+# ==========================================    
+def show_mixing_screen():
+    
+    clear_left_frame()
+    
+    # ==========================================
+    # TYTUŁ
+    # ==========================================
+    tk.Label(
 
-    # ======================================
+        left_frame,
+
+        text="KALKULATOR HETEROSTRUKTUR III-V",
+
+        bg="#cdd8f5",
+
+        font=("Arial", 16, "bold")
+
+    ).pack(pady=20)
+
+
+    # ==========================================
+    # PRESET
+    # ==========================================
+    tk.Label(
+
+        left_frame,
+
+        text="Preset",
+
+        bg="#cdd8f5",
+
+        font=("Arial", 11, "bold")
+
+    ).pack(pady=5)
+
+
+    preset_dropdown = ttk.Combobox(
+
+        left_frame,
+
+        textvariable=preset_var,
+
+        values=list(PRESETS.keys()),
+
+        width=20,
+
+        justify="center"
+
+    )
+
+    preset_dropdown.pack()
+
+    preset_dropdown.bind(
+        "<<ComboboxSelected>>",
+        load_preset
+    )
+
+
+    # ==========================================
     # KATIONY
-    # ======================================
-    if cat1 != "":
+    # ==========================================
+    cation_frame = tk.Frame(
+        left_frame,
+        bg="#cdd8f5"
+    )
 
-        material["cations"].append(cat1)
+    cation_frame.pack(pady=10)
 
-        material["fractions"][cat1] = x1
+    tk.Label(
+        cation_frame,
+        text="KATIONY",
+        bg="#cdd8f5",
+        font=("Arial", 11, "bold")
+    ).grid(
+        row=0,
+        column=0,
+        columnspan=3,
+        pady=5
+    )
 
-    if cat2 != "":
+    # wybór
 
-        material["cations"].append(cat2)
+    ttk.Combobox(
+        cation_frame,
+        textvariable=cation1_var,
+        values=[""] + cations,
+        width=8,
+        justify="center"
+    ).grid(row=1, column=0, padx=5)
 
-        material["fractions"][cat2] = x2
+    ttk.Combobox(
+        cation_frame,
+        textvariable=cation2_var,
+        values=[""] + cations,
+        width=8,
+        justify="center"
+    ).grid(row=1, column=1, padx=5)
 
-    # ======================================
+    ttk.Combobox(
+        cation_frame,
+        textvariable=cation3_var,
+        values=[""] + cations,
+        width=8,
+        justify="center"
+    ).grid(row=1, column=2, padx=5)
+
+    # udziały
+
+    ttk.Entry(
+        cation_frame,
+        textvariable=x1_var,
+        width=8,
+        justify="center"
+    ).grid(row=2, column=0, padx=5, pady=5)
+
+    ttk.Entry(
+        cation_frame,
+        textvariable=x2_var,
+        width=8,
+        justify="center"
+    ).grid(row=2, column=1, padx=5, pady=5)
+
+    ttk.Entry(
+        cation_frame,
+        textvariable=x3_var,
+        width=8,
+        justify="center"
+    ).grid(row=2, column=2, padx=5, pady=5)
+
+
+    # ==========================================
     # ANIONY
-    # ======================================
-    if an1 != "":
+    # ==========================================
+    anion_frame = tk.Frame(
+        left_frame,
+        bg="#cdd8f5"
+    )
 
-        material["anions"].append(an1)
+    anion_frame.pack(pady=10)
 
-        material["fractions"][an1] = y1
+    tk.Label(
+        anion_frame,
+        text="ANIONY",
+        bg="#cdd8f5",
+        font=("Arial", 11, "bold")
+    ).grid(
+        row=0,
+        column=0,
+        columnspan=3,
+        pady=5
+    )
 
-    if an2 != "":
+    # wybór
 
-        material["anions"].append(an2)
+    ttk.Combobox(
+        anion_frame,
+        textvariable=anion1_var,
+        values=[""] + anions,
+        width=8,
+        justify="center"
+    ).grid(row=1, column=0, padx=5)
 
-        material["fractions"][an2] = y2
+    ttk.Combobox(
+        anion_frame,
+        textvariable=anion2_var,
+        values=[""] + anions,
+        width=8,
+        justify="center"
+    ).grid(row=1, column=1, padx=5)
 
-    return material
+    ttk.Combobox(
+        anion_frame,
+        textvariable=anion3_var,
+        values=[""] + anions,
+        width=8,
+        justify="center"
+    ).grid(row=1, column=2, padx=5)
 
+    # udziały
+
+    ttk.Entry(
+        anion_frame,
+        textvariable=y1_var,
+        width=8,
+        justify="center"
+    ).grid(row=2, column=0, padx=5, pady=5)
+
+    ttk.Entry(
+        anion_frame,
+        textvariable=y2_var,
+        width=8,
+        justify="center"
+    ).grid(row=2, column=1, padx=5, pady=5)
+
+    ttk.Entry(
+        anion_frame,
+        textvariable=y3_var,
+        width=8,
+        justify="center"
+    ).grid(row=2, column=2, padx=5, pady=5)
+
+
+
+
+
+    # ==========================================
+    # BUTTON
+    # ==========================================
+    tk.Button(
+
+        left_frame,
+
+        text="Next",
+
+        command=next_window,
+
+        font=("Arial", 12, "bold"),
+
+        bg="#6d8edb",
+
+        fg="white",
+
+        activebackground="#5678c7",
+
+        width=18,
+
+        height=2,
+
+        relief="flat"
+
+    ).pack(pady=30)
+    
+    
+    
 
 # ==========================================
-# ŁADOWANIE PRESETU
+# DODAWANIE PODŁOŻA
+# ==========================================  
+def show_substrate_screen():
+
+    clear_left_frame()
+
+    tk.Label(
+        left_frame,
+        text="WYBÓR PODŁOŻA",
+        font=("Arial",16,"bold"),
+        bg="#cdd8f5"
+    ).pack(pady=20)
+    
+    substrates = load_substrates()
+
+    ttk.Combobox(
+        left_frame,
+        textvariable=substrate_var,
+        values=substrates,
+        width=20,
+        justify="center"
+    ).pack(pady=20)
+    
+    tk.Button(
+        left_frame,
+        text="Dalej",
+        command=confirm_substrate,
+        width=20,
+        height=2
+    ).pack(pady=20)
+ 
+       
 # ==========================================
-def load_preset(event=None):
+# PRZYCISK POTWIERDZENIA
+# ==========================================    
+def confirm_substrate():
 
-    name = preset_var.get()
+    if substrate_var.get() == "":
 
-    if name not in PRESETS:
+        tk.messagebox.showerror(
+            "Błąd",
+            "Wybierz podłoże"
+        )
 
         return
 
-    p = PRESETS[name]
+    app_state.current_substrate = substrate_var.get()
 
-    cation1_var.set(p["cat1"])
-    cation2_var.set(p["cat2"])
+    module = import_function("naprezenia")
+    
+    module.calculate_strain(database)
+    
+    show_operations_screen()
+#############################
+    
+    result_box.delete("1.0", tk.END)
 
-    anion1_var.set(p["an1"])
-    anion2_var.set(p["an2"])
+    result = ""
+    
+    # ======================================
+    # PARAMETRY MATERIAŁU
+    # ======================================
+    
+    result += "PARAMETRY MATERIAŁU\n"
+    result += "====================================\n\n"
+    
+    result += f"Eg  = {app_state.mixed_material['Eg']:.4f} eV\n"
+    result += f"VBO = {app_state.mixed_material['VBO']:.4f} eV\n"
+    result += f"CBO = {app_state.mixed_material['CBO']:.4f} eV\n\n"
+    
+    result += f"a   = {app_state.mixed_material['a']:.4f} A\n"
+    result += f"c11 = {app_state.mixed_material['c11']:.4f}\n"
+    result += f"c12 = {app_state.mixed_material['c12']:.4f}\n\n"
+    
+    # ======================================
+    # NAPRĘŻENIA
+    # ======================================
+    
+    result += "NAPRĘŻENIA\n"
+    result += "====================================\n\n"
+    
+    result += f"Podłoże = {app_state.current_substrate}\n\n"
+    
+    result += f"eps_xx = {app_state.strain['eps_xx']:.6e}\n"
+    result += f"eps_yy = {app_state.strain['eps_yy']:.6e}\n"
+    result += f"eps_zz = {app_state.strain['eps_zz']:.6e}\n\n"
+    
+    # ======================================
+    # PASMA
+    # ======================================
+    
+    result += "PASMA ENERGETYCZNE\n"
+    result += "====================================\n\n"
+    
+    result += "Przed naprężeniem:\n"
+    
+    result += f"CB = {app_state.mixed_material['CBO']:.4f} eV\n"
+    result += f"VB = {app_state.mixed_material['VBO']:.4f} eV\n"
+    result += f"Eg = {app_state.mixed_material['Eg']:.4f} eV\n\n"
+    
+    result += "Po naprężeniu:\n"
+    
+    result += f"CB = {app_state.strained_bands['CB']:.4f} eV\n"
+    result += f"HH = {app_state.strained_bands['HH']:.4f} eV\n"
+    result += f"LH = {app_state.strained_bands['LH']:.4f} eV\n"
+    
+    result += f"Eg(HH) = {app_state.strained_bands['Eg_HH']:.4f} eV\n"
+    result += f"Eg(LH) = {app_state.strained_bands['Eg_LH']:.4f} eV\n"
+    
+    result_box.insert(
+        tk.END,
+        result,
+        "center"
+    )
+    
+    
+    '''
+    result_box.insert(
+        tk.END,
+        "PODŁOŻE\n"
+        f"{app_state.current_substrate}\n"
+        "====================================\n"
+        "NAPRĘŻENIA\n"
+        "====================================\n\n"
 
-    x1_var.set(p["x1"])
-    x2_var.set(p["x2"])
+        f"eps_xx = {app_state.strain['eps_xx']:.6e}\n"
+        f"eps_yy = {app_state.strain['eps_yy']:.6e}\n"
+        f"eps_zz = {app_state.strain['eps_zz']:.6e}\n\n"
 
-    y1_var.set(p["y1"])
-    y2_var.set(p["y2"])
+        f"eps_h  = {app_state.strain['eps_h']:.6e}\n"
+        f"eps_b  = {app_state.strain['eps_b']:.6e}\n\n"
 
+        "====================================\n"
+        "PASMA PO ODKSZTAŁCENIU\n"
+        "====================================\n\n"
 
+        f"CB = {app_state.strained_bands['CB']:.4f} eV\n"
+        f"HH = {app_state.strained_bands['HH']:.4f} eV\n"
+        f"LH = {app_state.strained_bands['LH']:.4f} eV\n\n"
+
+        f"Eg(HH) = {app_state.strained_bands['Eg_HH']:.4f} eV\n"
+        f"Eg(LH) = {app_state.strained_bands['Eg_LH']:.4f} eV\n",
+
+        "center"
+    )
+    '''
+
+    
+
+def load_substrates():
+
+    return list(
+        database["binary materials"].keys()
+    )
+    
+    
 # ==========================================
-# OBLICZENIA
+# OKNO OPERACJI
 # ==========================================
-def calculate():
+def show_operations_screen():
 
-    func_name = function_var.get()
+    clear_left_frame()
 
-    material = create_material_dict()
+    tk.Label(
+        left_frame,
+        text="OPERACJE NA MATERIALE",
+        bg="#cdd8f5",
+        font=("Arial", 16, "bold")
+    ).pack(pady=20)
 
-    try:
-
-        module = import_function(func_name)
-
-        if hasattr(module, "calculate"):
-
-            result = module.calculate(
-                material,
-                database
-            )
-
-            result_box.delete(
-                "1.0",
-                tk.END
-            )
-
-            result_box.insert(
-                tk.END,
-                result
-            )
-
-        else:
-
-            result_box.delete(
-                "1.0",
-                tk.END
-            )
-
-            result_box.insert(
-                tk.END,
-                "Brak calculate()"
-            )
-
-    except Exception as e:
-
-        result_box.delete(
-            "1.0",
-            tk.END
+    material_name = ""
+    
+    for c in app_state.current_material["cations"]:
+        material_name += (
+            f"{c}"
+            f"{app_state.current_material['fractions'][c]:.2f}"
         )
+    
+    for a in app_state.current_material["anions"]:
+        material_name += a
+    
+    tk.Label(
+        left_frame,
+        text=material_name,
+        bg="#cdd8f5",
+        font=("Arial", 12, "bold")
+    ).pack(pady=10)
+    
+    tk.Label(
+        left_frame,
+        text="PODŁOŻE",
+        bg="#cdd8f5",
+        font=("Arial", 10, "bold")
+    ).pack(pady=(10, 0))
+    
+    tk.Label(
+        left_frame,
+        text=app_state.current_substrate,
+        bg="#cdd8f5",
+        font=("Arial", 12)
+    ).pack(pady=(0, 10))
+        
 
-        result_box.insert(
-            tk.END,
-            f"Błąd:\n{e}"
-        )
+    tk.Button(
+        left_frame,
+        text="Studnia kwantowa",
+        command=show_qw_form,
+        width=25,
+        height=2
+    ).pack(pady=5)
 
+    tk.Button(
+        left_frame,
+        text="← Wróć",
+        command=show_mixing_screen,
+        width=25,
+        height=2
+    ).pack(pady=20)
+    
+ # ==========================================
+ # STUDNIA KWANTOWA
+ # ==========================================   
+ 
+def draw_quantum_well():
 
+    app_state.well_width = float(
+        well_width_var.get()
+    )
+
+    app_state.barrier_width = float(
+        barrier_width_var.get()
+    )
+
+    module = import_function("studnia")
+
+    x, y_cb, y_hh, y_lh = module.plot(database)
+
+    clear_right_frame()
+
+    fig = Figure(figsize=(7, 5), dpi=100)
+
+    ax = fig.add_subplot(111)
+
+    ax.plot(
+        x,
+        y_cb,
+        linewidth=3,
+        label="Pasmo przewodnictwa"
+    )
+
+    ax.plot(
+        x,
+        y_hh,
+        "--",
+        linewidth=3,
+        label="Pasmo HH"
+    )
+
+    ax.plot(
+        x,
+        y_lh,
+        linewidth=3,
+        label="Pasmo LH"
+    )
+
+    ax.set_xlabel("Pozycja [nm]")
+    ax.set_ylabel("Energia [eV]")
+
+    ax.grid(True)
+    ax.legend()
+
+    canvas = FigureCanvasTkAgg(
+        fig,
+        master=right_frame
+    )
+
+    canvas.draw()
+
+    canvas.get_tk_widget().pack(
+        fill="both",
+        expand=True
+    )
+
+    app_state.plot_canvas = canvas
+    
+    
+def show_qw_form():
+
+    clear_left_frame()
+
+    tk.Label(
+        left_frame,
+        text="STUDNIA KWANTOWA",
+        bg="#cdd8f5",
+        font=("Arial", 16, "bold")
+    ).pack(pady=20)
+
+    tk.Label(
+        left_frame,
+        text="Szerokość studni [nm]",
+        bg="#cdd8f5"
+    ).pack()
+
+    tk.Entry(
+        left_frame,
+        textvariable=well_width_var
+    ).pack(pady=5)
+
+    tk.Label(
+        left_frame,
+        text="Szerokość bariery [nm]",
+        bg="#cdd8f5"
+    ).pack()
+
+    tk.Entry(
+        left_frame,
+        textvariable=barrier_width_var
+    ).pack(pady=5)
+
+    tk.Button(
+        left_frame,
+        text="Rysuj",
+        command=draw_quantum_well
+    ).pack(pady=20)
+    
+    
+# ==========================================
+# CZYSZCZENIE OKNA
+# ==========================================
+def clear_right_frame():
+
+    for widget in right_frame.winfo_children():
+        widget.destroy()
+        
 # ==========================================
 # DANE
 # ==========================================
-elements = load_elements()
+cations = load_cations()
 
-functions = load_functions()
+anions = load_anions()
 
 
 # ==========================================
@@ -309,9 +1131,9 @@ functions = load_functions()
 # ==========================================
 root = tk.Tk()
 
-root.title("Heterostruktury")
+root.title("Heterostruktury III-V")
 
-root.geometry("1300x800")
+root.geometry("1150x700")
 
 root.configure(bg="#93a9db")
 
@@ -339,7 +1161,7 @@ left_frame = tk.Frame(
 
     relief="ridge",
 
-    width=450
+    width=350
 )
 
 left_frame.grid(
@@ -391,379 +1213,31 @@ right_frame.grid(
 # ==========================================
 preset_var = tk.StringVar()
 
+substrate_var = tk.StringVar()
+
+well_width_var = tk.StringVar(value="4")
+barrier_width_var = tk.StringVar(value="8")
+
 cation1_var = tk.StringVar()
 cation2_var = tk.StringVar()
+cation3_var = tk.StringVar()
 
 anion1_var = tk.StringVar()
 anion2_var = tk.StringVar()
+anion3_var = tk.StringVar()
 
 x1_var = tk.StringVar(value="1.0")
 x2_var = tk.StringVar(value="0.0")
+x3_var = tk.StringVar(value="0.0")
 
 y1_var = tk.StringVar(value="1.0")
 y2_var = tk.StringVar(value="0.0")
+y3_var = tk.StringVar(value="0.0")
 
-function_var = tk.StringVar()
 
 
-# ==========================================
-# TYTUŁ
-# ==========================================
-title_label = tk.Label(
 
-    left_frame,
 
-    text="KALKULATOR HETEROSTRUKTUR",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 16, "bold"),
-
-    justify="center"
-)
-
-title_label.pack(pady=20)
-
-
-# ==========================================
-# PRESETY
-# ==========================================
-tk.Label(
-
-    left_frame,
-
-    text="Gotowa mieszanina",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11, "bold"),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-preset_dropdown = ttk.Combobox(
-
-    left_frame,
-
-    textvariable=preset_var,
-
-    values=list(PRESETS.keys()),
-
-    width=20,
-
-    justify="center"
-
-)
-
-preset_dropdown.pack()
-
-preset_dropdown.bind(
-    "<<ComboboxSelected>>",
-    load_preset
-)
-
-
-# ==========================================
-# KATIONY
-# ==========================================
-tk.Label(
-
-    left_frame,
-
-    text="Kation 1",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Combobox(
-
-    left_frame,
-
-    textvariable=cation1_var,
-
-    values=[""] + elements,
-
-    width=20,
-
-    justify="center"
-
-).pack()
-
-
-tk.Label(
-
-    left_frame,
-
-    text="Udział x1",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Entry(
-
-    left_frame,
-
-    textvariable=x1_var,
-
-    width=22,
-
-    justify="center"
-
-).pack()
-
-
-tk.Label(
-
-    left_frame,
-
-    text="Kation 2",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Combobox(
-
-    left_frame,
-
-    textvariable=cation2_var,
-
-    values=[""] + elements,
-
-    width=20,
-
-    justify="center"
-
-).pack()
-
-
-tk.Label(
-
-    left_frame,
-
-    text="Udział x2",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Entry(
-
-    left_frame,
-
-    textvariable=x2_var,
-
-    width=22,
-
-    justify="center"
-
-).pack()
-
-
-# ==========================================
-# ANIONY
-# ==========================================
-tk.Label(
-
-    left_frame,
-
-    text="Anion 1",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Combobox(
-
-    left_frame,
-
-    textvariable=anion1_var,
-
-    values=[""] + elements,
-
-    width=20,
-
-    justify="center"
-
-).pack()
-
-
-tk.Label(
-
-    left_frame,
-
-    text="Udział y1",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Entry(
-
-    left_frame,
-
-    textvariable=y1_var,
-
-    width=22,
-
-    justify="center"
-
-).pack()
-
-
-tk.Label(
-
-    left_frame,
-
-    text="Anion 2",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Combobox(
-
-    left_frame,
-
-    textvariable=anion2_var,
-
-    values=[""] + elements,
-
-    width=20,
-
-    justify="center"
-
-).pack()
-
-
-tk.Label(
-
-    left_frame,
-
-    text="Udział y2",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Entry(
-
-    left_frame,
-
-    textvariable=y2_var,
-
-    width=22,
-
-    justify="center"
-
-).pack()
-
-
-# ==========================================
-# FUNKCJA
-# ==========================================
-tk.Label(
-
-    left_frame,
-
-    text="Funkcja",
-
-    bg="#cdd8f5",
-
-    font=("Arial", 11, "bold"),
-
-    justify="center"
-
-).pack(pady=5)
-
-
-ttk.Combobox(
-
-    left_frame,
-
-    textvariable=function_var,
-
-    values=functions,
-
-    width=20,
-
-    justify="center"
-
-).pack()
-
-
-# ==========================================
-# BUTTON
-# ==========================================
-calculate_button = tk.Button(
-
-    left_frame,
-
-    text="Oblicz",
-
-    command=calculate,
-
-    font=("Arial", 12, "bold"),
-
-    bg="#6d8edb",
-
-    fg="white",
-
-    activebackground="#5678c7",
-
-    width=18,
-
-    height=2,
-
-    relief="flat"
-
-)
-
-calculate_button.pack(pady=30)
 
 
 # ==========================================
@@ -792,11 +1266,8 @@ result_box = tk.Text(
 )
 
 result_box.tag_configure(
-
     "center",
-
     justify="center"
-
 )
 
 result_box.pack(
@@ -808,10 +1279,11 @@ result_box.pack(
     padx=10,
 
     pady=10
-
 )
+
 
 # ==========================================
 # START
 # ==========================================
+show_mixing_screen()
 root.mainloop()
