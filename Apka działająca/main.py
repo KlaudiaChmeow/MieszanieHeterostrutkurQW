@@ -357,7 +357,42 @@ def validate_fractions():
     except:
 
         return False, "Udziały muszą być liczbami"
+    
+    # ==========================
+    # Zakaz Klonowania
+    # ==========================
 
+    if cation1_var.get() == cation2_var.get() and cation1_var.get() != "" and cation2_var.get() != "":
+        return (
+            False,
+            "Nie można ustawiać takich samych materiałów"
+        )
+    if cation1_var.get() == cation3_var.get() and cation1_var.get() != "" and cation3_var.get() != "":
+        return (
+            False,
+            "Nie można ustawiać takich samych materiałów"
+        )
+    if cation2_var.get() == cation3_var.get() and cation2_var.get() != "" and cation3_var.get() != "":
+        return (
+            False,
+            "Nie można ustawiać takich samych materiałów"
+        )
+    if anion1_var.get() == anion2_var.get() and anion1_var.get() != "" and anion2_var.get() != "":
+        return (
+            False,
+            "Nie można ustawiać takich samych materiałów"
+        )
+    if anion1_var.get() == anion3_var.get() and anion1_var.get() != "" and anion3_var.get() != "":
+        return (
+            False,
+            "Nie można ustawiać takich samych materiałów"
+        )
+    if anion2_var.get() == anion3_var.get() and anion2_var.get() != "" and anion3_var.get() != "":
+        return (
+            False,
+            "Nie można ustawiać takich samych materiałów"
+        )
+    
     # ==========================
     # ZAKRES
     # ==========================
