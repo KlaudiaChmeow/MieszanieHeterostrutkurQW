@@ -924,6 +924,50 @@ def show_operations_screen():
 
     tk.Button(
         left_frame,
+        text="Pokaż wykres mas efektywnych w Z",
+        command=draw_mass_dependency,
+        font=("Arial", 11, "bold"),
+        bg="#6d8edb",
+        fg="white",
+        width=25,
+        height=2
+    ).pack(pady=5)
+    
+    tk.Button(
+        left_frame,
+        text="Pokaż wykres mas efektywnych 111",
+        command=draw_mass_dependency_111,
+        font=("Arial", 11, "bold"),
+        bg="#6d8edb",
+        fg="white",
+        width=25,
+        height=2
+    ).pack(pady=5)
+    
+    tk.Button(
+        left_frame,
+        text="Pokaż wykres mas efektywnych 110",
+        command=draw_mass_dependency_110,
+        font=("Arial", 11, "bold"),
+        bg="#6d8edb",
+        fg="white",
+        width=25,
+        height=2
+    ).pack(pady=5)
+    
+    tk.Button(
+        left_frame,
+        text="Pokaż wykres oddziaływania S-O",
+        command=draw_S_O,
+        font=("Arial", 11, "bold"),
+        bg="#6d8edb",
+        fg="white",
+        width=25,
+        height=2
+    ).pack(pady=5)
+    
+    tk.Button(
+        left_frame,
         text="Studnia kwantowa",
         command=show_qw_form,
         width=25,
@@ -937,6 +981,8 @@ def show_operations_screen():
         width=25,
         height=2
     ).pack(pady=20)
+    
+    
     
 # ==========================================
 # RYSOWANIE WYKRESU ENERGII PASM (Wspiera 2D i 3D)
@@ -997,6 +1043,285 @@ def draw_band_energy():
         ax.legend(loc="best")
         
     ax.set_title("Zależność energii pasm od składu stopu", fontsize=12, fontweight='bold', pad=15)
+    fig.tight_layout()
+
+    canvas = FigureCanvasTkAgg(fig, master=right_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
+    
+    app_state.plot_canvas = canvas
+    app_state.band_plot_figure = fig
+        
+# ==========================================
+#  RYSOWANIE WYKRESU MAS EFEKTYWNYCH (2D i 3D)
+# ==========================================
+def draw_mass_dependency():
+    clear_right_frame()
+    
+    if app_state.current_material is None:
+        tk.messagebox.showerror("Błąd", "Brak wybranego materiału")
+        return
+        
+    module = import_function("mieszanie")
+    
+    try:
+        res = module.calculate_mass_dependency(
+            app_state.current_material,
+            database
+        )
+    except Exception as e:
+        traceback.print_exc()
+        tk.messagebox.showerror("Błąd", f"Nie udało się obliczyć zależności mas: {e}")
+        return
+
+    fig = Figure(figsize=(6, 5), dpi=100)
+    from matplotlib.patches import Patch
+    
+    is_3d = res[0]
+    
+    if is_3d:
+        # Obsługa renderowania powierzchni trójwymiarowej (3D) dla mas efektywnych
+        _, X, Y, Z_me, Z_mhh, Z_mlh, xlabel, ylabel = res[0], res[1], res[2], res[3], res[4], res[5], res[10], res[11]
+        ax = fig.add_subplot(111, projection='3d')
+        
+        surf_me = ax.plot_surface(X, Y, Z_me, cmap="Purples", alpha=0.75, edgecolor='none')
+        surf_mhh = ax.plot_surface(X, Y, Z_mhh, cmap="Greens", alpha=0.75, edgecolor='none')
+        surf_mlh = ax.plot_surface(X, Y, Z_mlh, cmap="Reds", alpha=0.75, edgecolor='none')
+        
+        ax.set_xlabel(xlabel, fontsize=9, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=9, fontweight='bold')
+        ax.set_zlabel("Masa efektywna (m0)", fontsize=9, fontweight='bold')
+        
+        # Tworzenie sztucznej legendy
+        legend_elements = [
+            Patch(facecolor='#8e44ad', edgecolor='none', alpha=0.7, label='Masa elektronu (m_e)'),
+            Patch(facecolor='#27ae60', edgecolor='none', alpha=0.7, label='Masa ciężkiej dziury (m_hh)'),
+            Patch(facecolor='#f31212', edgecolor='none', alpha=0.7, label='Masa lekkiej dziury (m_lh)')
+        ]
+        ax.legend(handles=legend_elements, loc="best")
+    else:
+        # Obsługa wykresu liniowego (2D) dla mas efektywnych
+        _, x_steps, me_coords, mhh_coords, mlh_coords, xlabel, _ = res[0], res[1], res[2], res[3], res[4], res[9], res[10]
+        ax = fig.add_subplot(111)
+        
+        ax.plot(x_steps, me_coords, label="m_e (elektron)", color="#8e44ad", linewidth=2.5)
+        ax.plot(x_steps, mhh_coords, label="m_hh (ciężka dziura)", color="#27ae60", linewidth=2.5)
+        ax.plot(x_steps, mlh_coords, label="m_lh (lekka dziura)", color="#f31230", linewidth=2.5)
+        
+        ax.set_xlabel(xlabel, fontsize=10, fontweight='bold')
+        ax.set_ylabel("Masa efektywna (m0)", fontsize=10, fontweight='bold')
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.legend(loc="best")
+        
+    ax.set_title("Zależność mas efektywnych od składu", fontsize=12, fontweight='bold', pad=15)
+    fig.tight_layout()
+
+    canvas = FigureCanvasTkAgg(fig, master=right_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
+    
+    app_state.plot_canvas = canvas
+    app_state.band_plot_figure = fig
+
+# ==========================================
+#  RYSOWANIE WYKRESU MAS EFEKTYWNYCH w kierunku 111 (2D i 3D)
+# ==========================================
+def draw_mass_dependency_111():
+    clear_right_frame()
+    
+    if app_state.current_material is None:
+        tk.messagebox.showerror("Błąd", "Brak wybranego materiału")
+        return
+        
+    module = import_function("mieszanie")
+    
+    try:
+        res = module.calculate_mass_dependency(
+            app_state.current_material,
+            database
+        )
+    except Exception as e:
+        traceback.print_exc()
+        tk.messagebox.showerror("Błąd", f"Nie udało się obliczyć zależności mas: {e}")
+        return
+
+    fig = Figure(figsize=(6, 5), dpi=100)
+    from matplotlib.patches import Patch
+    
+    is_3d = res[0]
+    
+    if is_3d:
+        # Obsługa renderowania powierzchni trójwymiarowej (3D) dla mas efektywnych
+        _, X, Y, Z_me, Z_mhh111, Z_mlh111, xlabel, ylabel = res[0], res[1], res[2], res[3], res[8], res[9], res[10], res[11]
+        ax = fig.add_subplot(111, projection='3d')
+        
+        surf_me = ax.plot_surface(X, Y, Z_me, cmap="Purples", alpha=0.75, edgecolor='none')
+        surf_mhh111 = ax.plot_surface(X, Y, Z_mhh111, cmap="Greens", alpha=0.75, edgecolor='none')
+        surf_mlh111 = ax.plot_surface(X, Y, Z_mlh111, cmap="Reds", alpha=0.75, edgecolor='none')
+        
+        ax.set_xlabel(xlabel, fontsize=9, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=9, fontweight='bold')
+        ax.set_zlabel("Masa efektywna (m0)", fontsize=9, fontweight='bold')
+        
+        # Tworzenie sztucznej legendy
+        legend_elements = [
+            Patch(facecolor='#8e44ad', edgecolor='none', alpha=0.7, label='Masa elektronu (m_e)'),
+            Patch(facecolor='#27ae60', edgecolor='none', alpha=0.7, label='Masa ciężkiej dziury kierunku 111 (m_hh111)'),
+            Patch(facecolor='#f31212', edgecolor='none', alpha=0.7, label='Masa lekkiej dziury kierunku 111 (m_lh111)')
+        ]
+        ax.legend(handles=legend_elements, loc="best")
+    else:
+        # Obsługa wykresu liniowego (2D) dla mas efektywnych
+        _, x_steps, me_coords, mhh111_coords, mlh111_coords, xlabel, _ = res[0], res[1], res[2], res[5], res[6], res[9], res[10]
+        ax = fig.add_subplot(111)
+        
+        ax.plot(x_steps, me_coords, label="m_e (elektron)", color="#8e44ad", linewidth=2.5)
+        ax.plot(x_steps, mhh111_coords, label="m_hh111 (ciężka dziura)", color="#27ae60", linewidth=2.5)
+        ax.plot(x_steps, mlh111_coords, label="m_lh111 (lekka dziura)", color="#f31230", linewidth=2.5)
+        
+        ax.set_xlabel(xlabel, fontsize=10, fontweight='bold')
+        ax.set_ylabel("Masa efektywna (m0)", fontsize=10, fontweight='bold')
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.legend(loc="best")
+        
+    ax.set_title("Zależność mas efektywnych od składu", fontsize=12, fontweight='bold', pad=15)
+    fig.tight_layout()
+
+    canvas = FigureCanvasTkAgg(fig, master=right_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
+    
+    app_state.plot_canvas = canvas
+    app_state.band_plot_figure = fig
+
+# ==========================================
+#  RYSOWANIE WYKRESU MAS EFEKTYWNYCH w kierunku 110 (2D i 3D)
+# ==========================================
+def draw_mass_dependency_110():
+    clear_right_frame()
+    
+    if app_state.current_material is None:
+        tk.messagebox.showerror("Błąd", "Brak wybranego materiału")
+        return
+        
+    module = import_function("mieszanie")
+    
+    try:
+        res = module.calculate_mass_dependency(
+            app_state.current_material,
+            database
+        )
+    except Exception as e:
+        traceback.print_exc()
+        tk.messagebox.showerror("Błąd", f"Nie udało się obliczyć zależności mas: {e}")
+        return
+
+    fig = Figure(figsize=(6, 5), dpi=100)
+    from matplotlib.patches import Patch
+    
+    is_3d = res[0]
+    
+    if is_3d:
+        # Obsługa renderowania powierzchni trójwymiarowej (3D) dla mas efektywnych
+        _, X, Y, Z_me, Z_mhh110, Z_mlh110, xlabel, ylabel = res[0], res[1], res[2], res[3], res[6], res[7], res[10], res[11]
+        ax = fig.add_subplot(111, projection='3d')
+        
+        surf_me = ax.plot_surface(X, Y, Z_me, cmap="Purples", alpha=0.75, edgecolor='none')
+        surf_mhh110 = ax.plot_surface(X, Y, Z_mhh110, cmap="Greens", alpha=0.75, edgecolor='none')
+        surf_mlh110 = ax.plot_surface(X, Y, Z_mlh110, cmap="Reds", alpha=0.75, edgecolor='none')
+        
+        ax.set_xlabel(xlabel, fontsize=9, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=9, fontweight='bold')
+        ax.set_zlabel("Masa efektywna (m0)", fontsize=9, fontweight='bold')
+        
+        # Tworzenie sztucznej legendy
+        legend_elements = [
+            Patch(facecolor='#8e44ad', edgecolor='none', alpha=0.7, label='Masa elektronu (m_e)'),
+            Patch(facecolor='#27ae60', edgecolor='none', alpha=0.7, label='Masa ciężkiej dziury kierunku 110 (m_hh110)'),
+            Patch(facecolor='#f31212', edgecolor='none', alpha=0.7, label='Masa lekkiej dziury kierunku 110 (m_lh110)')
+        ]
+        ax.legend(handles=legend_elements, loc="best")
+    else:
+        # Obsługa wykresu liniowego (2D) dla mas efektywnych
+        _, x_steps, me_coords, mhh110_coords, mlh110_coords, xlabel, _ = res[0], res[1], res[2], res[7], res[8], res[9], res[10]
+        ax = fig.add_subplot(111)
+        ax = fig.add_subplot(111)
+        
+        ax.plot(x_steps, me_coords, label="m_e (elektron)", color="#8e44ad", linewidth=2.5)
+        ax.plot(x_steps, mhh110_coords, label="m_hh110 (ciężka dziura)", color="#27ae60", linewidth=2.5)
+        ax.plot(x_steps, mlh110_coords, label="m_lh110 (lekka dziura)", color="#f31212", linewidth=2.5)
+        
+        ax.set_xlabel(xlabel, fontsize=10, fontweight='bold')
+        ax.set_ylabel("Masa efektywna (m0)", fontsize=10, fontweight='bold')
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.legend(loc="best")
+        
+    ax.set_title("Zależność mas efektywnych od składu", fontsize=12, fontweight='bold', pad=15)
+    fig.tight_layout()
+
+    canvas = FigureCanvasTkAgg(fig, master=right_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
+    
+    app_state.plot_canvas = canvas
+    app_state.band_plot_figure = fig
+
+# ==========================================
+#  RYSOWANIE WYKRESU Spin Orbita (2D i 3D)
+# ==========================================
+def draw_S_O():
+    clear_right_frame()
+    
+    if app_state.current_material is None:
+        tk.messagebox.showerror("Błąd", "Brak wybranego materiału")
+        return
+        
+    module = import_function("mieszanie")
+    
+    try:
+        res = module.calculate_mass_dependency(
+            app_state.current_material,
+            database
+        )
+    except Exception as e:
+        traceback.print_exc()
+        tk.messagebox.showerror("Błąd", f"Nie udało się obliczyć zależności mas: {e}")
+        return
+
+    fig = Figure(figsize=(6, 5), dpi=100)
+    from matplotlib.patches import Patch
+    
+    is_3d = res[0]
+    
+    if is_3d:
+        # Obsługa renderowania powierzchni trójwymiarowej (3D) dla mas efektywnych
+        _, X, Y, Z_so, xlabel, ylabel = res[0], res[1], res[2], res[12], res[10], res[11]
+        ax = fig.add_subplot(111, projection='3d')
+        
+        surf_so = ax.plot_surface(X, Y, Z_so, cmap="Purples", alpha=0.75, edgecolor='none')
+        
+        ax.set_xlabel(xlabel, fontsize=9, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=9, fontweight='bold')
+        ax.set_zlabel("Oddziaływanie Spin-Orbital (so)", fontsize=9, fontweight='bold')
+        
+        # Tworzenie sztucznej legendy
+        legend_elements = [
+            Patch(facecolor='#8e44ad', edgecolor='none', alpha=0.7, label='Masa efektywna oddziaływania Spin-Orbital (so)'),
+        ]
+        ax.legend(handles=legend_elements, loc="best")
+    else:
+        # Obsługa wykresu liniowego (2D) dla mas efektywnych
+        _, x_steps, so_coords, xlabel, _ = res[0], res[1], res[11], res[9], res[10]
+        ax = fig.add_subplot(111)
+        
+        ax.plot(x_steps, so_coords, label="so (Spin-Orbital)", color="#8e44ad", linewidth=2.5)
+        
+        ax.set_xlabel(xlabel, fontsize=10, fontweight='bold')
+        ax.set_ylabel("Oddziaływanie Spin-Orbital (so)", fontsize=10, fontweight='bold')
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.legend(loc="best")
+        
+    ax.set_title("Zależność Spin-Orbital od składu", fontsize=12, fontweight='bold', pad=15)
     fig.tight_layout()
 
     canvas = FigureCanvasTkAgg(fig, master=right_frame)
