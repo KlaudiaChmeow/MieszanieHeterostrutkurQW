@@ -17,7 +17,7 @@ import numpy as np
 # ŚCIEŻKI
 # ==========================================
 MATERIALY_PATH = "materialy.json"
-FUNKCJE_PATH = "working_app_preparing-masa_efektywna\\gunkcje"
+FUNKCJE_PATH = "working_app\\gunkcje"
 
 
 # ==========================================
