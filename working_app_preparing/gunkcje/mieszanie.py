@@ -257,7 +257,7 @@ def calculate_mass_dependency(material, database):
         return True, X, Y, Z_me, Z_mhh, Z_mlh, Z_mhh110, Z_mlh110, Z_mhh111, Z_mlh111, xlabel, ylabel, Z_SO
     else:
         x_steps = [i / 100.0 for i in range(101)]
-        me_coords, mhh_coords, mlh_coords, mhh111_coords, mlh111_coords, mhh110_coords, mlh110_coords, so_coords = [], [], [], [], [], [], [], [], []
+        me_coords, mhh_coords, mlh_coords, mhh111_coords, mlh111_coords, mhh110_coords, mlh110_coords, so_coords = [], [], [], [], [], [], [], []
         var_el = cations[0] if len(cations) == 2 else (anions[0] if len(anions) == 2 else None)
         dep_el = cations[1] if len(cations) == 2 else (anions[1] if len(anions) == 2 else None)
 
