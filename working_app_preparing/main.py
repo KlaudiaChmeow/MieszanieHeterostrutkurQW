@@ -915,10 +915,7 @@ def show_operations_screen():
         left_frame,
         text="Pokaż wykres pasm",
         command=draw_band_energy,
-        font=("Arial", 11, "bold"),
-        bg="#6d8edb",
-        fg="white",
-        width=25,
+        width=40,
         height=2
     ).pack(pady=10)
 
@@ -926,10 +923,7 @@ def show_operations_screen():
         left_frame,
         text="Pokaż wykres mas efektywnych w Z",
         command=draw_mass_dependency,
-        font=("Arial", 11, "bold"),
-        bg="#6d8edb",
-        fg="white",
-        width=25,
+        width=40,
         height=2
     ).pack(pady=5)
     
@@ -937,10 +931,7 @@ def show_operations_screen():
         left_frame,
         text="Pokaż wykres mas efektywnych 111",
         command=draw_mass_dependency_111,
-        font=("Arial", 11, "bold"),
-        bg="#6d8edb",
-        fg="white",
-        width=25,
+        width=40,
         height=2
     ).pack(pady=5)
     
@@ -948,10 +939,7 @@ def show_operations_screen():
         left_frame,
         text="Pokaż wykres mas efektywnych 110",
         command=draw_mass_dependency_110,
-        font=("Arial", 11, "bold"),
-        bg="#6d8edb",
-        fg="white",
-        width=25,
+        width=40,
         height=2
     ).pack(pady=5)
     
@@ -959,10 +947,7 @@ def show_operations_screen():
         left_frame,
         text="Pokaż wykres oddziaływania S-O",
         command=draw_S_O,
-        font=("Arial", 11, "bold"),
-        bg="#6d8edb",
-        fg="white",
-        width=25,
+        width=40,
         height=2
     ).pack(pady=5)
     
