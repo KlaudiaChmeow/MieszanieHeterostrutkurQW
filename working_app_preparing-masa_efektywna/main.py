@@ -9,6 +9,7 @@ from tkinter import ttk, messagebox
 import app_state
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 
@@ -16,7 +17,7 @@ import numpy as np
 # ŚCIEŻKI
 # ==========================================
 MATERIALY_PATH = "materialy.json"
-FUNKCJE_PATH = "working_app_preparing\\gunkcje"
+FUNKCJE_PATH = "working_app_preparing-masa_efektywna\\gunkcje"
 
 
 # ==========================================
@@ -1325,51 +1326,110 @@ def draw_S_O():
     app_state.plot_canvas = canvas
     app_state.band_plot_figure = fig
     
-# ==========================================
-# RYSOWANIE WYKRESU GRUBOŚCI KRYTYCZNEJ
-# ==========================================
+# ==============================================================================
+# UNIWERSALNE RYSOWANIE WYKRESU GRUBOŚCI KRYTYCZNEJ (AUTODETEKCJA 2D / 3D STRUKTURY)
+# ==============================================================================
 def draw_critical_thickness():
     clear_right_frame()
     
-    if app_state.current_material is None or app_state.current_substrate is None:
-        tk.messagebox.showerror("Błąd", "Brak wybranego materiału lub podłoża")
+    # Pobranie wszystkich wpisanych kationów i anionów
+    cat1 = cation1_var.get().strip()
+    cat2 = cation2_var.get().strip()
+    cat3 = cation3_var.get().strip()
+    
+    an1 = anion1_var.get().strip()
+    an2 = anion2_var.get().strip()
+    an3 = anion3_var.get().strip()
+    
+    sub = substrate_var.get().strip()
+    
+    if not sub:
+        tk.messagebox.showerror("Błąd", "Wybierz podłoże (substrate) przed wykreśleniem.")
         return
         
+    # Odfiltrowanie niepustych elementów
+    cations_list = [c for c in [cat1, cat2, cat3] if c]
+    anions_list = [a for a in [an1, an2, an3] if a]
+    total_elements = len(cations_list) + len(anions_list)
+    
+    # Dynamiczny import modułu obliczeniowego
     module = import_function("krytyczna")
+    fig = Figure(figsize=(7, 6), dpi=100)
     
-    try:
-        f_values, hc_values, f_curr, hc_curr = module.get_plot_data(database)
-    except Exception as e:
-        traceback.print_exc()
-        tk.messagebox.showerror("Błąd", f"Nie udało się obliczyć grubości krytycznej: {e}")
-        return
-
-    fig = Figure(figsize=(6, 5), dpi=100)
-    ax = fig.add_subplot(111)
-    
-    # Rysowanie tła – teoretycznej krzywej
-    ax.semilogy(f_values * 100, hc_values, label="Krzywa Matthews-Blakeslee", color="#2c3e50", linewidth=2.5)
-    
-    # Rysowanie punktu dotyczącego wygenerowanego przez nas materiału
-    if np.isinf(hc_curr):
-        ax.set_title("Dopasowanie sieciowe (f ≈ 0) – nieskończona grubość krytyczna", fontsize=11)
-    elif not np.isnan(hc_curr):
-        ax.plot(f_curr * 100, hc_curr, 'ro', markersize=8, label=f"Twój stop\n|f| = {f_curr*100:.3f}%\nhc = {hc_curr:.2f} nm")
+    # --------------------------------------------------------------------------
+    # PRZYPADEK 1: UKŁAD 3-ELEMENTOWY (WYKRES 2D)
+    # --------------------------------------------------------------------------
+    if total_elements == 3:
+        try:
+            x_vec, hc_vec, xlabel = module.get_ternary_2d_data(
+                database, cations_list, anions_list, sub, FUNKCJE_PATH
+            )
+        except Exception as e:
+            traceback.print_exc()
+            tk.messagebox.showerror("Błąd", f"Nie udało się przeliczyć układu 3-elementowego: {e}")
+            return
+            
+        ax = fig.add_subplot(111)
+        ax.plot(x_vec, hc_vec, color='#1f77b4', linewidth=2.5, label='hc (Matthews-Blakeslee)')
+        ax.set_xlabel(xlabel, fontsize=9, fontweight='bold')
+        ax.set_ylabel("Grubość krytyczna hc [nm]", fontsize=9, fontweight='bold')
         
-    ax.set_xlabel("Niedopasowanie sieciowe |f| [%]", fontsize=10, fontweight='bold')
-    ax.set_ylabel("Grubość krytyczna hc [nm]", fontsize=10, fontweight='bold')
-    ax.grid(True, linestyle="--", alpha=0.5, which="both")
-    ax.legend(loc="upper right")
-    
-    ax.set_title("Wykres grubości krytycznej", fontsize=12, fontweight='bold', pad=15)
+        # Generowanie ładnego opisu na podstawie wykrytych pierwiastków
+        w_formula = "".join(cations_list) + "".join(anions_list)
+        ax.set_title(f"Model Matthews-Blakeslee dla układu 3-elementowego\nStop: {w_formula} / Podłoże: {sub}", fontsize=10, fontweight='bold')
+        ax.grid(True, linestyle='--', alpha=0.6)
+        ax.set_xlim(0, 1)
+        
+    # --------------------------------------------------------------------------
+    # PRZYPADEK 2: UKŁAD 4-ELEMENTOWY (WYKRES 3D SURFACE Z MASKOWANIEM GIBBSA DLA 3+1/1+3 LUB PEŁNY DLA 2+2)
+    # --------------------------------------------------------------------------
+    elif total_elements == 4:
+        try:
+            # Pobranie danych (siatka X, Y oraz macierz grubości Z)
+            X, Y, Z, xlabel, ylabel = module.get_quaternary_3d_data(
+                database, cations_list, anions_list, sub, FUNKCJE_PATH
+            )
+        except Exception as e:
+            traceback.print_exc()
+            tk.messagebox.showerror("Błąd", f"Nie udało się wygenerować danych: {e}")
+            return
+            
+        # Zmiana: Tworzymy zwykłą oś 2D zamiast osi z parametrem projection='3d'
+        ax = fig.add_subplot(111)
+        
+        # Rysowanie dwuwymiarowej mapy cieplnej. 
+        # pcolormesh świetnie radzi sobie z wartościami np.nan (pozostawia je przezroczyste/białe)
+        im = ax.pcolormesh(X, Y, Z, cmap='viridis', shading='auto')
+        
+        # Dodanie paska skali kolorystycznej (colorbar) określającego grubość krytyczną
+        cbar = fig.colorbar(im, ax=ax, shrink=0.9, aspect=15)
+        cbar.set_label("Grubość krytyczna hc [nm]", fontsize=9, fontweight='bold')
+        
+        # Ustawienia etykiet osi (zostają dokładnie takie same)
+        ax.set_xlabel(xlabel, fontsize=9, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=9, fontweight='bold')
+        
+        # Tytuł wykresu zmieniony na mapę cieplną
+        ax.set_title(f"Mapa cieplna grubości krytycznej hc\nPodłoże: {sub}", fontsize=10, fontweight='bold', pad=12)
+        ax.grid(True, linestyle='--', alpha=0.5)
+        
+        # Opcjonalnie: wymuszenie równej skali osi, jeśli zakresy x i y są identyczne (0 do 1)
+        ax.set_aspect('equal', 'box')
+        
+    else:
+        tk.messagebox.showerror("Błąd", f"Wykryto {total_elements} pierwiastków. Obsługiwane są wyłącznie układy 3 lub 4 elementowe.")
+        return
+        
     fig.tight_layout()
 
+    # Odświeżenie i osadzenie widoku w oknie interfejsu Tkinter
     canvas = FigureCanvasTkAgg(fig, master=right_frame)
     canvas.draw()
     canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
     
     app_state.plot_canvas = canvas
-    app_state.band_plot_figure = fig        
+    app_state.band_plot_figure = fig
+    
  # ==========================================
  # STUDNIA KWANTOWA
  # ==========================================   
