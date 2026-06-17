@@ -1322,13 +1322,13 @@ def draw_S_O():
  
 def draw_quantum_well():
 
-    app_state.well_width = float(
+    app_state.well_width = abs(float(
         well_width_var.get()
-    )
+    ))
 
-    app_state.barrier_width = float(
+    app_state.barrier_width = abs(float(
         barrier_width_var.get()
-    )
+    ))
 
     module = import_function("studnia")
 
@@ -1381,15 +1381,6 @@ def draw_quantum_well():
     )
 
     app_state.plot_canvas = canvas
-    
-    tk.Button(
-        left_frame,
-        text="← Wróć",
-        command=show_mixing_screen,
-        width=25,
-        height=2
-    ).pack(pady=20)
-    
     
 def show_qw_form():
 
