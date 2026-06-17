@@ -1382,15 +1382,6 @@ def draw_quantum_well():
 
     app_state.plot_canvas = canvas
     
-    tk.Button(
-        left_frame,
-        text="← Wróć",
-        command=show_mixing_screen,
-        width=25,
-        height=2
-    ).pack(pady=20)
-    
-    
 def show_qw_form():
 
     clear_left_frame()
